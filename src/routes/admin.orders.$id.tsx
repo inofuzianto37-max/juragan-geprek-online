@@ -199,6 +199,10 @@ function AdminOrderDetail() {
         )}
       </div>
 
+      {order.payment_method === "transfer" && (
+        <AdminPaymentProof path={order.payment_proof_url} />
+      )}
+
       {/* Status update */}
       <div className="rounded-2xl border border-border/60 bg-card p-6 shadow-card">
         <h3 className="font-display text-lg font-bold">Perbarui Status</h3>
@@ -323,4 +327,39 @@ function Info({ icon: Icon, label, children }: { icon: React.ElementType; label:
 
 function Row({ label, value }: { label: string; value: string }) {
   return <div className="flex justify-between"><span className="text-muted-foreground">{label}</span><span>{value}</span></div>;
+}
+
+function AdminPaymentProof({ path }: { path: string | null }) {
+  const [url, setUrl] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    setUrl(null);
+    if (!path) return;
+    setLoading(true);
+    supabase.storage.from("payment-proofs").createSignedUrl(path, 60 * 10).then(({ data, error }) => {
+      setLoading(false);
+      if (!error && data) setUrl(data.signedUrl);
+    });
+  }, [path]);
+
+  return (
+    <div className="rounded-2xl border border-border/60 bg-card p-6 shadow-card">
+      <h3 className="font-display text-lg font-bold mb-1">Bukti Pembayaran</h3>
+      <p className="text-xs text-muted-foreground mb-4">
+        {path ? "Verifikasi bukti transfer pelanggan sebelum mengubah status menjadi Dikonfirmasi." : "Pelanggan belum mengunggah bukti pembayaran."}
+      </p>
+      {loading && <div className="text-sm text-muted-foreground">Memuat...</div>}
+      {url && (
+        <a href={url} target="_blank" rel="noreferrer" className="block">
+          <img src={url} alt="Bukti pembayaran" className="max-h-96 w-auto rounded-xl border border-border/60 object-contain bg-muted" />
+        </a>
+      )}
+      {!path && (
+        <div className="rounded-xl border-2 border-dashed border-border bg-muted/30 px-4 py-8 text-center text-sm text-muted-foreground">
+          Belum ada bukti pembayaran.
+        </div>
+      )}
+    </div>
+  );
 }
