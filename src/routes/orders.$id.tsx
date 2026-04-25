@@ -119,7 +119,7 @@ function OrderDetailPage() {
         </div>
       </div>
 
-      {order.payment_method === "transfer" && order.status !== "cancelled" && order.status !== "delivered" && (
+      {order.payment_method === "transfer" && order.status !== "cancelled" && (
         <div className="mt-6 rounded-2xl border-2 border-warning/30 bg-warning/10 p-5 text-sm space-y-4">
           <div>
             <div className="font-semibold text-warning-foreground">
