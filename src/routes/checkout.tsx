@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Truck, Store, Banknote, Wallet } from "lucide-react";
+import { Truck, Store, Banknote, Wallet, AlertCircle } from "lucide-react";
+import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useCart } from "@/hooks/useCart";
@@ -9,8 +10,29 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { formatRupiah } from "@/lib/format";
 import { toast } from "sonner";
+
+const baseSchema = z.object({
+  name: z.string().trim().min(2, "Nama minimal 2 karakter").max(100, "Nama maksimal 100 karakter"),
+  phone: z
+    .string()
+    .trim()
+    .min(9, "Nomor WhatsApp minimal 9 digit")
+    .max(20, "Nomor WhatsApp terlalu panjang")
+    .regex(/^[0-9+\-\s]+$/, "Nomor hanya boleh angka, +, atau -"),
+  delivery: z.enum(["delivery", "pickup"]),
+  address: z.string().trim().max(500, "Alamat terlalu panjang").optional(),
+  notes: z.string().trim().max(500, "Catatan terlalu panjang").optional(),
+});
+
+const checkoutSchema = baseSchema.refine(
+  (d) => d.delivery !== "delivery" || (d.address && d.address.length >= 10),
+  { message: "Alamat lengkap wajib diisi (min. 10 karakter) untuk pengiriman", path: ["address"] }
+);
+
+type FieldErrors = Partial<Record<"name" | "phone" | "address", string>>;
 
 export const Route = createFileRoute("/checkout")({
   head: () => ({ meta: [{ title: "Checkout — Juragan Geprek" }] }),
