@@ -30,7 +30,7 @@ function MenuPage() {
   const { data: items, isLoading } = useQuery({
     queryKey: ["menu", activeCat],
     queryFn: async () => {
-      let q = supabase.from("menu_items").select("*").eq("is_available", true).eq("is_catering_package", false);
+      let q = supabase.from("menu_items").select("*").eq("is_available", true).eq("is_catering_package", false).gt("stock", 0);
       if (activeCat) q = q.eq("category_id", activeCat);
       const { data, error } = await q.order("price");
       if (error) throw error;

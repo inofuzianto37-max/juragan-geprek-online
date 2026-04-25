@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Truck, Store, Banknote, Wallet } from "lucide-react";
+import { Truck, Store, Banknote, Wallet, AlertCircle } from "lucide-react";
+import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useCart } from "@/hooks/useCart";
@@ -9,8 +10,29 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { formatRupiah } from "@/lib/format";
 import { toast } from "sonner";
+
+const baseSchema = z.object({
+  name: z.string().trim().min(2, "Nama minimal 2 karakter").max(100, "Nama maksimal 100 karakter"),
+  phone: z
+    .string()
+    .trim()
+    .min(9, "Nomor WhatsApp minimal 9 digit")
+    .max(20, "Nomor WhatsApp terlalu panjang")
+    .regex(/^[0-9+\-\s]+$/, "Nomor hanya boleh angka, +, atau -"),
+  delivery: z.enum(["delivery", "pickup"]),
+  address: z.string().trim().max(500, "Alamat terlalu panjang").optional(),
+  notes: z.string().trim().max(500, "Catatan terlalu panjang").optional(),
+});
+
+const checkoutSchema = baseSchema.refine(
+  (d) => d.delivery !== "delivery" || (d.address && d.address.length >= 10),
+  { message: "Alamat lengkap wajib diisi (min. 10 karakter) untuk pengiriman", path: ["address"] }
+);
+
+type FieldErrors = Partial<Record<"name" | "phone" | "address", string>>;
 
 export const Route = createFileRoute("/checkout")({
   head: () => ({ meta: [{ title: "Checkout — Juragan Geprek" }] }),
@@ -31,6 +53,7 @@ function CheckoutPage() {
   const [payment, setPayment] = useState<"transfer" | "cod">("transfer");
   const [notes, setNotes] = useState("");
   const [busy, setBusy] = useState(false);
+  const [errors, setErrors] = useState<FieldErrors>({});
 
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/auth", search: { redirect: "/checkout" } });
@@ -63,7 +86,19 @@ function CheckoutPage() {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
-    if (delivery === "delivery" && !address.trim()) { toast.error("Alamat pengiriman wajib diisi"); return; }
+
+    const result = checkoutSchema.safeParse({ name, phone, delivery, address, notes });
+    if (!result.success) {
+      const fe: FieldErrors = {};
+      for (const issue of result.error.issues) {
+        const k = issue.path[0] as keyof FieldErrors;
+        if (k && !fe[k]) fe[k] = issue.message;
+      }
+      setErrors(fe);
+      toast.error("Mohon perbaiki data yang ditandai merah");
+      return;
+    }
+    setErrors({});
     setBusy(true);
 
     const { data: order, error } = await supabase.from("orders").insert({
@@ -92,8 +127,17 @@ function CheckoutPage() {
       subtotal: i.price * i.quantity,
     }));
     const { error: oiErr } = await supabase.from("order_items").insert(orderItems);
+    if (oiErr) {
+      // rollback order header (RLS won't allow user to delete; admin trigger N/A — soft cancel instead)
+      await supabase.from("orders").update({ status: "cancelled", notes: `[AUTO] ${oiErr.message}` }).eq("id", order.id);
+      setBusy(false);
+      const friendly = oiErr.message.toLowerCase().includes("stok")
+        ? oiErr.message
+        : `Gagal menambahkan item pesanan: ${oiErr.message}`;
+      toast.error(friendly);
+      return;
+    }
     setBusy(false);
-    if (oiErr) { toast.error(oiErr.message); return; }
 
     clear();
     toast.success(`Pesanan ${order.order_number} berhasil dibuat!`);
@@ -105,10 +149,41 @@ function CheckoutPage() {
       <h1 className="font-display text-4xl font-bold mb-8">Checkout</h1>
       <form onSubmit={submit} className="grid gap-8 lg:grid-cols-[1fr_400px]">
         <div className="space-y-6">
+          {Object.values(errors).some(Boolean) && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                Mohon lengkapi data wajib yang ditandai di bawah sebelum melanjutkan pesanan.
+              </AlertDescription>
+            </Alert>
+          )}
           <Section title="Data Pemesan">
             <div className="grid gap-4 sm:grid-cols-2">
-              <div><Label>Nama</Label><Input required value={name} onChange={(e) => setName(e.target.value)} /></div>
-              <div><Label>No. WhatsApp</Label><Input required value={phone} onChange={(e) => setPhone(e.target.value)} /></div>
+              <div>
+                <Label htmlFor="ck-name">Nama lengkap <span className="text-destructive">*</span></Label>
+                <Input
+                  id="ck-name"
+                  value={name}
+                  onChange={(e) => { setName(e.target.value); if (errors.name) setErrors({ ...errors, name: undefined }); }}
+                  aria-invalid={!!errors.name}
+                  className={errors.name ? "border-destructive focus-visible:ring-destructive" : ""}
+                  placeholder="Mis. Budi Santoso"
+                />
+                {errors.name && <FieldError msg={errors.name} />}
+              </div>
+              <div>
+                <Label htmlFor="ck-phone">No. WhatsApp <span className="text-destructive">*</span></Label>
+                <Input
+                  id="ck-phone"
+                  inputMode="tel"
+                  value={phone}
+                  onChange={(e) => { setPhone(e.target.value); if (errors.phone) setErrors({ ...errors, phone: undefined }); }}
+                  aria-invalid={!!errors.phone}
+                  className={errors.phone ? "border-destructive focus-visible:ring-destructive" : ""}
+                  placeholder="08xx-xxxx-xxxx"
+                />
+                {errors.phone && <FieldError msg={errors.phone} />}
+              </div>
             </div>
           </Section>
 
@@ -119,8 +194,17 @@ function CheckoutPage() {
             </RadioGroup>
             {delivery === "delivery" && (
               <div className="mt-4">
-                <Label>Alamat lengkap</Label>
-                <Textarea required value={address} onChange={(e) => setAddress(e.target.value)} rows={3} />
+                <Label htmlFor="ck-addr">Alamat lengkap <span className="text-destructive">*</span></Label>
+                <Textarea
+                  id="ck-addr"
+                  value={address}
+                  onChange={(e) => { setAddress(e.target.value); if (errors.address) setErrors({ ...errors, address: undefined }); }}
+                  rows={3}
+                  aria-invalid={!!errors.address}
+                  className={errors.address ? "border-destructive focus-visible:ring-destructive" : ""}
+                  placeholder="Nama jalan, no. rumah, RT/RW, kelurahan, patokan..."
+                />
+                {errors.address && <FieldError msg={errors.address} />}
               </div>
             )}
           </Section>
@@ -178,6 +262,14 @@ function Section({ title, children }: { title: string; children: React.ReactNode
       <h3 className="font-display text-lg font-bold mb-4">{title}</h3>
       {children}
     </div>
+  );
+}
+
+function FieldError({ msg }: { msg: string }) {
+  return (
+    <p className="mt-1.5 flex items-center gap-1 text-xs font-medium text-destructive">
+      <AlertCircle className="h-3.5 w-3.5" /> {msg}
+    </p>
   );
 }
 

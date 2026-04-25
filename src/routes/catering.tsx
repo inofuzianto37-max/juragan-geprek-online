@@ -18,7 +18,7 @@ function CateringPage() {
   const { data, isLoading } = useQuery({
     queryKey: ["catering"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("menu_items").select("*").eq("is_catering_package", true).eq("is_available", true).order("price");
+      const { data, error } = await supabase.from("menu_items").select("*").eq("is_catering_package", true).eq("is_available", true).gt("stock", 0).order("price");
       if (error) throw error;
       return data as MenuItemRow[];
     },
