@@ -25,6 +25,7 @@ function HomePage() {
         .select("*")
         .eq("is_available", true)
         .eq("is_catering_package", false)
+        .gt("stock", 0)
         .limit(6);
       if (error) throw error;
       return data as MenuItemRow[];
