@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import {
   ArrowLeft, Phone, MapPin, Wallet, Truck, Store, MessageCircle, User as UserIcon, Save,
+  ImageIcon, Download, Loader2,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -14,6 +15,9 @@ import { Label } from "@/components/ui/label";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
 import { formatRupiah, formatDate } from "@/lib/format";
 import {
   STATUS_LABEL, STATUS_VARIANT, STATUS_DESCRIPTION, STATUS_ICON, STATUS_FLOW, STATUS_OPTIONS,
