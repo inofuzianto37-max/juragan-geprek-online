@@ -204,7 +204,7 @@ function AdminOrderDetail() {
       </div>
 
       {order.payment_method === "transfer" && (
-        <AdminPaymentProof path={order.payment_proof_url} />
+        <AdminPaymentProof path={order.payment_proof_url} orderNumber={order.order_number} />
       )}
 
       {/* Status update */}
