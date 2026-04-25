@@ -30,6 +30,7 @@ export function SiteHeader() {
           <Link to="/" activeProps={{ className: "text-primary" }} className="hover:text-primary transition">Beranda</Link>
           <Link to="/menu" activeProps={{ className: "text-primary" }} className="hover:text-primary transition">Menu</Link>
           <Link to="/catering" activeProps={{ className: "text-primary" }} className="hover:text-primary transition">Paket Catering</Link>
+          <Link to="/contact" activeProps={{ className: "text-primary" }} className="hover:text-primary transition">Kontak</Link>
           {user && (
             <Link to="/orders" activeProps={{ className: "text-primary" }} className="hover:text-primary transition">Pesanan Saya</Link>
           )}
