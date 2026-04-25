@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as MenuRouteImport } from './routes/menu'
+import { Route as ContactRouteImport } from './routes/contact'
 import { Route as CheckoutRouteImport } from './routes/checkout'
 import { Route as CateringRouteImport } from './routes/catering'
 import { Route as CartRouteImport } from './routes/cart'
@@ -27,6 +28,11 @@ import { Route as AdminOrdersIdRouteImport } from './routes/admin.orders.$id'
 const MenuRoute = MenuRouteImport.update({
   id: '/menu',
   path: '/menu',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ContactRoute = ContactRouteImport.update({
+  id: '/contact',
+  path: '/contact',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CheckoutRoute = CheckoutRouteImport.update({
@@ -102,6 +108,7 @@ export interface FileRoutesByFullPath {
   '/cart': typeof CartRoute
   '/catering': typeof CateringRoute
   '/checkout': typeof CheckoutRoute
+  '/contact': typeof ContactRoute
   '/menu': typeof MenuRoute
   '/admin/menu': typeof AdminMenuRoute
   '/admin/orders': typeof AdminOrdersRouteWithChildren
@@ -117,6 +124,7 @@ export interface FileRoutesByTo {
   '/cart': typeof CartRoute
   '/catering': typeof CateringRoute
   '/checkout': typeof CheckoutRoute
+  '/contact': typeof ContactRoute
   '/menu': typeof MenuRoute
   '/admin/menu': typeof AdminMenuRoute
   '/admin/orders': typeof AdminOrdersRouteWithChildren
@@ -134,6 +142,7 @@ export interface FileRoutesById {
   '/cart': typeof CartRoute
   '/catering': typeof CateringRoute
   '/checkout': typeof CheckoutRoute
+  '/contact': typeof ContactRoute
   '/menu': typeof MenuRoute
   '/admin/menu': typeof AdminMenuRoute
   '/admin/orders': typeof AdminOrdersRouteWithChildren
@@ -152,6 +161,7 @@ export interface FileRouteTypes {
     | '/cart'
     | '/catering'
     | '/checkout'
+    | '/contact'
     | '/menu'
     | '/admin/menu'
     | '/admin/orders'
@@ -167,6 +177,7 @@ export interface FileRouteTypes {
     | '/cart'
     | '/catering'
     | '/checkout'
+    | '/contact'
     | '/menu'
     | '/admin/menu'
     | '/admin/orders'
@@ -183,6 +194,7 @@ export interface FileRouteTypes {
     | '/cart'
     | '/catering'
     | '/checkout'
+    | '/contact'
     | '/menu'
     | '/admin/menu'
     | '/admin/orders'
@@ -200,6 +212,7 @@ export interface RootRouteChildren {
   CartRoute: typeof CartRoute
   CateringRoute: typeof CateringRoute
   CheckoutRoute: typeof CheckoutRoute
+  ContactRoute: typeof ContactRoute
   MenuRoute: typeof MenuRoute
   OrdersIdRoute: typeof OrdersIdRoute
   OrdersIndexRoute: typeof OrdersIndexRoute
@@ -212,6 +225,13 @@ declare module '@tanstack/react-router' {
       path: '/menu'
       fullPath: '/menu'
       preLoaderRoute: typeof MenuRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/contact': {
+      id: '/contact'
+      path: '/contact'
+      fullPath: '/contact'
+      preLoaderRoute: typeof ContactRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/checkout': {
@@ -343,6 +363,7 @@ const rootRouteChildren: RootRouteChildren = {
   CartRoute: CartRoute,
   CateringRoute: CateringRoute,
   CheckoutRoute: CheckoutRoute,
+  ContactRoute: ContactRoute,
   MenuRoute: MenuRoute,
   OrdersIdRoute: OrdersIdRoute,
   OrdersIndexRoute: OrdersIndexRoute,
