@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import {
   ArrowLeft, Phone, MapPin, Wallet, Truck, Store, MessageCircle, User as UserIcon, Save,
+  ImageIcon, Download, Loader2,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -14,6 +15,9 @@ import { Label } from "@/components/ui/label";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
 import { formatRupiah, formatDate } from "@/lib/format";
 import {
   STATUS_LABEL, STATUS_VARIANT, STATUS_DESCRIPTION, STATUS_ICON, STATUS_FLOW, STATUS_OPTIONS,
@@ -200,7 +204,7 @@ function AdminOrderDetail() {
       </div>
 
       {order.payment_method === "transfer" && (
-        <AdminPaymentProof path={order.payment_proof_url} />
+        <AdminPaymentProof path={order.payment_proof_url} orderNumber={order.order_number} />
       )}
 
       {/* Status update */}
@@ -329,9 +333,11 @@ function Row({ label, value }: { label: string; value: string }) {
   return <div className="flex justify-between"><span className="text-muted-foreground">{label}</span><span>{value}</span></div>;
 }
 
-function AdminPaymentProof({ path }: { path: string | null }) {
+function AdminPaymentProof({ path, orderNumber }: { path: string | null; orderNumber: string }) {
   const [url, setUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [downloading, setDownloading] = useState(false);
 
   useEffect(() => {
     setUrl(null);
@@ -343,23 +349,90 @@ function AdminPaymentProof({ path }: { path: string | null }) {
     });
   }, [path]);
 
+  const handleDownload = async () => {
+    if (!path) return;
+    setDownloading(true);
+    const { data, error } = await supabase.storage.from("payment-proofs").download(path);
+    setDownloading(false);
+    if (error || !data) { toast.error("Gagal mengunduh bukti"); return; }
+    const ext = path.split(".").pop() || "jpg";
+    const blobUrl = URL.createObjectURL(data);
+    const a = document.createElement("a");
+    a.href = blobUrl;
+    a.download = `bukti-bayar-${orderNumber}.${ext}`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(blobUrl);
+    toast.success("Bukti pembayaran diunduh");
+  };
+
   return (
-    <div className="rounded-2xl border border-border/60 bg-card p-6 shadow-card">
-      <h3 className="font-display text-lg font-bold mb-1">Bukti Pembayaran</h3>
-      <p className="text-xs text-muted-foreground mb-4">
-        {path ? "Verifikasi bukti transfer pelanggan sebelum mengubah status menjadi Dikonfirmasi." : "Pelanggan belum mengunggah bukti pembayaran."}
-      </p>
-      {loading && <div className="text-sm text-muted-foreground">Memuat...</div>}
-      {url && (
-        <a href={url} target="_blank" rel="noreferrer" className="block">
-          <img src={url} alt="Bukti pembayaran" className="max-h-96 w-auto rounded-xl border border-border/60 object-contain bg-muted" />
-        </a>
-      )}
-      {!path && (
-        <div className="rounded-xl border-2 border-dashed border-border bg-muted/30 px-4 py-8 text-center text-sm text-muted-foreground">
-          Belum ada bukti pembayaran.
+    <>
+      <div className="rounded-2xl border border-border/60 bg-card p-6 shadow-card">
+        <div className="flex items-start justify-between gap-3 flex-wrap">
+          <div>
+            <h3 className="font-display text-lg font-bold mb-1">Bukti Pembayaran</h3>
+            <p className="text-xs text-muted-foreground">
+              {path ? "Verifikasi bukti transfer pelanggan sebelum mengubah status menjadi Dikonfirmasi." : "Pelanggan belum mengunggah bukti pembayaran."}
+            </p>
+          </div>
+          {path && (
+            <div className="flex gap-2">
+              <Button size="sm" variant="outline" onClick={() => setOpen(true)} disabled={!url}>
+                <ImageIcon className="mr-1 h-4 w-4" /> Lihat besar
+              </Button>
+              <Button size="sm" variant="outline" onClick={handleDownload} disabled={downloading}>
+                {downloading ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Download className="mr-1 h-4 w-4" />}
+                Unduh
+              </Button>
+            </div>
+          )}
         </div>
-      )}
-    </div>
+
+        {loading && <div className="mt-4 text-sm text-muted-foreground">Memuat bukti...</div>}
+        {url && (
+          <button type="button" onClick={() => setOpen(true)} className="mt-4 block group">
+            <img
+              src={url}
+              alt="Bukti pembayaran"
+              className="max-h-80 w-auto rounded-xl border border-border/60 object-contain bg-muted group-hover:opacity-90 transition"
+            />
+            <div className="mt-2 text-xs text-muted-foreground">Klik untuk memperbesar</div>
+          </button>
+        )}
+        {!path && (
+          <div className="mt-4 rounded-xl border-2 border-dashed border-border bg-muted/30 px-4 py-8 text-center text-sm text-muted-foreground">
+            Belum ada bukti pembayaran.
+          </div>
+        )}
+      </div>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Bukti Pembayaran — {orderNumber}</DialogTitle>
+          </DialogHeader>
+          {url ? (
+            <div className="space-y-3">
+              <div className="max-h-[70vh] overflow-auto rounded-lg border border-border bg-muted">
+                <img src={url} alt="Bukti pembayaran" className="w-full h-auto object-contain" />
+              </div>
+              <div className="flex justify-end gap-2">
+                <a href={url} target="_blank" rel="noreferrer">
+                  <Button variant="outline" size="sm">Buka di tab baru</Button>
+                </a>
+                <Button size="sm" onClick={handleDownload} disabled={downloading} className="bg-gradient-hero text-primary-foreground">
+                  {downloading ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Download className="mr-1 h-4 w-4" />}
+                  Unduh
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="text-sm text-muted-foreground">Memuat...</div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
