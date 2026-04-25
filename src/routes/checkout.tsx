@@ -257,6 +257,14 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
+function FieldError({ msg }: { msg: string }) {
+  return (
+    <p className="mt-1.5 flex items-center gap-1 text-xs font-medium text-destructive">
+      <AlertCircle className="h-3.5 w-3.5" /> {msg}
+    </p>
+  );
+}
+
 function OptionCard({ checked, value, icon: Icon, title, desc }: { checked: boolean; value: string; icon: React.ElementType; title: string; desc: string }) {
   return (
     <Label htmlFor={value} className={`flex cursor-pointer items-start gap-3 rounded-xl border-2 p-4 transition ${checked ? "border-primary bg-primary/5" : "border-border hover:border-primary/40"}`}>
