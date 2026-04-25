@@ -53,6 +53,7 @@ function CheckoutPage() {
   const [payment, setPayment] = useState<"transfer" | "cod">("transfer");
   const [notes, setNotes] = useState("");
   const [busy, setBusy] = useState(false);
+  const [errors, setErrors] = useState<FieldErrors>({});
 
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/auth", search: { redirect: "/checkout" } });
@@ -85,7 +86,19 @@ function CheckoutPage() {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
-    if (delivery === "delivery" && !address.trim()) { toast.error("Alamat pengiriman wajib diisi"); return; }
+
+    const result = checkoutSchema.safeParse({ name, phone, delivery, address, notes });
+    if (!result.success) {
+      const fe: FieldErrors = {};
+      for (const issue of result.error.issues) {
+        const k = issue.path[0] as keyof FieldErrors;
+        if (k && !fe[k]) fe[k] = issue.message;
+      }
+      setErrors(fe);
+      toast.error("Mohon perbaiki data yang ditandai merah");
+      return;
+    }
+    setErrors({});
     setBusy(true);
 
     const { data: order, error } = await supabase.from("orders").insert({
