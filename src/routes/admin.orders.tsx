@@ -1,17 +1,16 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { MessageCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useSiteSettings } from "@/hooks/useSiteSettings";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import {
-  Dialog, DialogContent, DialogHeader, DialogTitle,
-} from "@/components/ui/dialog";
 import { formatRupiah, formatDate } from "@/lib/format";
-import { STATUS_LABEL, STATUS_OPTIONS, STATUS_VARIANT, type OrderStatus } from "@/lib/orderStatus";
+import { STATUS_LABEL, STATUS_OPTIONS, STATUS_VARIANT, STATUS_DESCRIPTION, type OrderStatus } from "@/lib/orderStatus";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/admin/orders")({
@@ -20,8 +19,8 @@ export const Route = createFileRoute("/admin/orders")({
 
 function AdminOrdersPage() {
   const qc = useQueryClient();
+  const { settings } = useSiteSettings();
   const [filter, setFilter] = useState<OrderStatus | "all">("all");
-  const [openId, setOpenId] = useState<string | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ["admin-orders", filter],
@@ -38,6 +37,14 @@ function AdminOrdersPage() {
     const { error } = await supabase.from("orders").update({ status }).eq("id", id);
     if (error) toast.error(error.message);
     else { toast.success("Status diperbarui"); qc.invalidateQueries({ queryKey: ["admin-orders"] }); }
+  };
+
+  const waLink = (o: any) => {
+    const num = String(o.customer_phone).replace(/\D/g, "").replace(/^0/, "62");
+    const msg = encodeURIComponent(
+      `Halo ${o.customer_name}, pesanan *${o.order_number}* di ${settings.brand_name} sekarang berstatus *${STATUS_LABEL[o.status as OrderStatus]}*.\n\n${STATUS_DESCRIPTION[o.status as OrderStatus]}\n\nTotal: ${formatRupiah(Number(o.total))}\n\nTerima kasih! 🙏`
+    );
+    return `https://wa.me/${num}?text=${msg}`;
   };
 
   return (
@@ -63,9 +70,9 @@ function AdminOrdersPage() {
             <div key={o.id} className="rounded-2xl border border-border/60 bg-card p-5 shadow-card">
               <div className="flex items-start justify-between gap-3 flex-wrap">
                 <div>
-                  <button onClick={() => setOpenId(o.id)} className="font-mono text-sm font-bold text-primary hover:underline">
+                  <Link to="/admin/orders/$id" params={{ id: o.id }} className="font-mono text-sm font-bold text-primary hover:underline">
                     {o.order_number}
-                  </button>
+                  </Link>
                   <div className="text-sm font-medium mt-1">{o.customer_name} • {o.customer_phone}</div>
                   <div className="text-xs text-muted-foreground">{formatDate(o.created_at)}</div>
                   <div className="mt-2 flex gap-2 text-xs">
@@ -75,7 +82,7 @@ function AdminOrdersPage() {
                 </div>
                 <div className="text-right">
                   <div className="font-display text-xl font-bold text-primary">{formatRupiah(Number(o.total))}</div>
-                  <Badge variant={STATUS_VARIANT[o.status]} className="mt-1">{STATUS_LABEL[o.status]}</Badge>
+                  <Badge variant={STATUS_VARIANT[o.status as OrderStatus]} className="mt-1">{STATUS_LABEL[o.status as OrderStatus]}</Badge>
                 </div>
               </div>
               <div className="mt-3 flex items-center gap-2 flex-wrap">
@@ -85,61 +92,19 @@ function AdminOrdersPage() {
                     {STATUS_OPTIONS.map((s) => <SelectItem key={s} value={s}>{STATUS_LABEL[s]}</SelectItem>)}
                   </SelectContent>
                 </Select>
-                <Button variant="outline" size="sm" onClick={() => setOpenId(o.id)}>Detail</Button>
+                <Button asChild variant="outline" size="sm">
+                  <Link to="/admin/orders/$id" params={{ id: o.id }}>Detail & Timeline</Link>
+                </Button>
+                <a href={waLink(o)} target="_blank" rel="noreferrer">
+                  <Button size="sm" className="bg-[#25D366] text-white hover:bg-[#1ebe57]">
+                    <MessageCircle className="mr-1 h-4 w-4" /> WhatsApp
+                  </Button>
+                </a>
               </div>
             </div>
           ))}
         </div>
       )}
-
-      <Dialog open={!!openId} onOpenChange={(o) => !o && setOpenId(null)}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader><DialogTitle>Detail Pesanan</DialogTitle></DialogHeader>
-          {openId && <OrderDetail id={openId} />}
-        </DialogContent>
-      </Dialog>
-    </div>
-  );
-}
-
-function OrderDetail({ id }: { id: string }) {
-  const { data: order } = useQuery({
-    queryKey: ["admin-order", id],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("orders").select("*").eq("id", id).single();
-      if (error) throw error;
-      return data;
-    },
-  });
-  const { data: items } = useQuery({
-    queryKey: ["admin-order-items", id],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("order_items").select("*").eq("order_id", id);
-      if (error) throw error;
-      return data;
-    },
-  });
-
-  if (!order) return <div className="py-4 text-center text-muted-foreground">Memuat...</div>;
-
-  return (
-    <div className="space-y-3 text-sm">
-      <div className="text-xs text-muted-foreground">{order.order_number} • {formatDate(order.created_at)}</div>
-      <div><strong>Pemesan:</strong> {order.customer_name} ({order.customer_phone})</div>
-      <div><strong>Pengiriman:</strong> {order.delivery_method === "delivery" ? `Antar — ${order.delivery_address}` : "Pickup"}</div>
-      <div><strong>Pembayaran:</strong> {order.payment_method === "transfer" ? "Transfer" : "COD"}</div>
-      {order.notes && <div><strong>Catatan:</strong> {order.notes}</div>}
-      <div className="border-t border-border pt-3 space-y-1">
-        {items?.map((i) => (
-          <div key={i.id} className="flex justify-between">
-            <span>{i.item_name} × {i.quantity}</span>
-            <span>{formatRupiah(Number(i.subtotal))}</span>
-          </div>
-        ))}
-      </div>
-      <div className="border-t border-border pt-3 flex justify-between font-bold">
-        <span>Total</span><span className="text-primary">{formatRupiah(Number(order.total))}</span>
-      </div>
     </div>
   );
 }
