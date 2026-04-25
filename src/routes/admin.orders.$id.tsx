@@ -199,6 +199,10 @@ function AdminOrderDetail() {
         )}
       </div>
 
+      {order.payment_method === "transfer" && (
+        <AdminPaymentProof path={order.payment_proof_url} />
+      )}
+
       {/* Status update */}
       <div className="rounded-2xl border border-border/60 bg-card p-6 shadow-card">
         <h3 className="font-display text-lg font-bold">Perbarui Status</h3>
