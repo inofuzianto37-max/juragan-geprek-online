@@ -151,8 +151,31 @@ function CheckoutPage() {
         <div className="space-y-6">
           <Section title="Data Pemesan">
             <div className="grid gap-4 sm:grid-cols-2">
-              <div><Label>Nama</Label><Input required value={name} onChange={(e) => setName(e.target.value)} /></div>
-              <div><Label>No. WhatsApp</Label><Input required value={phone} onChange={(e) => setPhone(e.target.value)} /></div>
+              <div>
+                <Label htmlFor="ck-name">Nama lengkap <span className="text-destructive">*</span></Label>
+                <Input
+                  id="ck-name"
+                  value={name}
+                  onChange={(e) => { setName(e.target.value); if (errors.name) setErrors({ ...errors, name: undefined }); }}
+                  aria-invalid={!!errors.name}
+                  className={errors.name ? "border-destructive focus-visible:ring-destructive" : ""}
+                  placeholder="Mis. Budi Santoso"
+                />
+                {errors.name && <FieldError msg={errors.name} />}
+              </div>
+              <div>
+                <Label htmlFor="ck-phone">No. WhatsApp <span className="text-destructive">*</span></Label>
+                <Input
+                  id="ck-phone"
+                  inputMode="tel"
+                  value={phone}
+                  onChange={(e) => { setPhone(e.target.value); if (errors.phone) setErrors({ ...errors, phone: undefined }); }}
+                  aria-invalid={!!errors.phone}
+                  className={errors.phone ? "border-destructive focus-visible:ring-destructive" : ""}
+                  placeholder="08xx-xxxx-xxxx"
+                />
+                {errors.phone && <FieldError msg={errors.phone} />}
+              </div>
             </div>
           </Section>
 
@@ -163,8 +186,17 @@ function CheckoutPage() {
             </RadioGroup>
             {delivery === "delivery" && (
               <div className="mt-4">
-                <Label>Alamat lengkap</Label>
-                <Textarea required value={address} onChange={(e) => setAddress(e.target.value)} rows={3} />
+                <Label htmlFor="ck-addr">Alamat lengkap <span className="text-destructive">*</span></Label>
+                <Textarea
+                  id="ck-addr"
+                  value={address}
+                  onChange={(e) => { setAddress(e.target.value); if (errors.address) setErrors({ ...errors, address: undefined }); }}
+                  rows={3}
+                  aria-invalid={!!errors.address}
+                  className={errors.address ? "border-destructive focus-visible:ring-destructive" : ""}
+                  placeholder="Nama jalan, no. rumah, RT/RW, kelurahan, patokan..."
+                />
+                {errors.address && <FieldError msg={errors.address} />}
               </div>
             )}
           </Section>
