@@ -127,8 +127,17 @@ function CheckoutPage() {
       subtotal: i.price * i.quantity,
     }));
     const { error: oiErr } = await supabase.from("order_items").insert(orderItems);
+    if (oiErr) {
+      // rollback order header (RLS won't allow user to delete; admin trigger N/A — soft cancel instead)
+      await supabase.from("orders").update({ status: "cancelled", notes: `[AUTO] ${oiErr.message}` }).eq("id", order.id);
+      setBusy(false);
+      const friendly = oiErr.message.toLowerCase().includes("stok")
+        ? oiErr.message
+        : `Gagal menambahkan item pesanan: ${oiErr.message}`;
+      toast.error(friendly);
+      return;
+    }
     setBusy(false);
-    if (oiErr) { toast.error(oiErr.message); return; }
 
     clear();
     toast.success(`Pesanan ${order.order_number} berhasil dibuat!`);
