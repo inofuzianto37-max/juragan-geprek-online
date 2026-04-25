@@ -229,6 +229,66 @@ export type Database = {
         }
         Relationships: []
       }
+      site_settings: {
+        Row: {
+          about_text: string
+          address: string
+          brand_name: string
+          brand_tagline: string
+          cta_event_subtitle: string
+          cta_event_title: string
+          email: string
+          google_maps_url: string | null
+          hero_badge: string
+          hero_subtitle: string
+          hero_title: string
+          id: string
+          instagram: string | null
+          open_hours: string
+          singleton: boolean
+          updated_at: string
+          whatsapp: string
+        }
+        Insert: {
+          about_text?: string
+          address?: string
+          brand_name?: string
+          brand_tagline?: string
+          cta_event_subtitle?: string
+          cta_event_title?: string
+          email?: string
+          google_maps_url?: string | null
+          hero_badge?: string
+          hero_subtitle?: string
+          hero_title?: string
+          id?: string
+          instagram?: string | null
+          open_hours?: string
+          singleton?: boolean
+          updated_at?: string
+          whatsapp?: string
+        }
+        Update: {
+          about_text?: string
+          address?: string
+          brand_name?: string
+          brand_tagline?: string
+          cta_event_subtitle?: string
+          cta_event_title?: string
+          email?: string
+          google_maps_url?: string | null
+          hero_badge?: string
+          hero_subtitle?: string
+          hero_title?: string
+          id?: string
+          instagram?: string | null
+          open_hours?: string
+          singleton?: boolean
+          updated_at?: string
+          whatsapp?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string

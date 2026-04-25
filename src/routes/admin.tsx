@@ -1,6 +1,6 @@
 import { createFileRoute, Link, Outlet, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
-import { LayoutDashboard, UtensilsCrossed, ClipboardList, Flame } from "lucide-react";
+import { LayoutDashboard, UtensilsCrossed, ClipboardList, Flame, Settings } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
 export const Route = createFileRoute("/admin")({
@@ -37,6 +37,7 @@ function AdminLayout() {
           <NavItem to="/admin" icon={LayoutDashboard} label="Ringkasan" />
           <NavItem to="/admin/orders" icon={ClipboardList} label="Pesanan" />
           <NavItem to="/admin/menu" icon={UtensilsCrossed} label="Menu & Inventaris" />
+          <NavItem to="/admin/settings" icon={Settings} label="Pengaturan Situs" />
         </aside>
         <div><Outlet /></div>
       </div>

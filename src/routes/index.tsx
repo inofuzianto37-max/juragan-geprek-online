@@ -4,6 +4,7 @@ import { ArrowRight, Flame, Truck, Store, Users, Star } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { MenuCard, type MenuItemRow } from "@/components/MenuCard";
+import { useSiteSettings } from "@/hooks/useSiteSettings";
 import heroImg from "@/assets/hero-geprek.jpg";
 
 export const Route = createFileRoute("/")({
@@ -17,6 +18,7 @@ export const Route = createFileRoute("/")({
 });
 
 function HomePage() {
+  const { settings } = useSiteSettings();
   const { data: featured } = useQuery({
     queryKey: ["featured-menu"],
     queryFn: async () => {
@@ -39,14 +41,13 @@ function HomePage() {
         <div className="container mx-auto grid gap-10 px-4 py-16 md:grid-cols-2 md:py-24 md:gap-6 items-center">
           <div className="space-y-6">
             <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-3 py-1 text-xs font-semibold text-primary">
-              <Flame className="h-3 w-3" /> Pedasnya Bikin Nagih
+              <Flame className="h-3 w-3" /> {settings.hero_badge}
             </div>
-            <h1 className="font-display text-5xl md:text-6xl lg:text-7xl font-bold leading-[1.05] text-balance">
-              Geprek <span className="text-primary">Hangat</span>,<br />
-              Catering <span className="text-primary">Juara</span>.
+            <h1 className="font-display text-5xl md:text-6xl lg:text-7xl font-bold leading-[1.05] text-balance text-primary">
+              {settings.hero_title}
             </h1>
             <p className="max-w-md text-lg text-muted-foreground text-balance">
-              Dari porsi satuan untuk makan siang sampai paket catering ratusan porsi untuk acaramu — semua diolah segar setiap hari.
+              {settings.hero_subtitle}
             </p>
             <div className="flex flex-wrap gap-3">
               <Button asChild size="lg" className="bg-gradient-hero text-primary-foreground shadow-warm hover:opacity-90">
@@ -116,8 +117,8 @@ function HomePage() {
           <div className="absolute inset-0 opacity-10" style={{ backgroundImage: "radial-gradient(circle at 20% 30%, white 1px, transparent 1px), radial-gradient(circle at 80% 70%, white 1px, transparent 1px)", backgroundSize: "40px 40px" }} />
           <div className="relative grid gap-6 md:grid-cols-[1fr_auto] items-center">
             <div className="text-primary-foreground">
-              <h2 className="font-display text-4xl md:text-5xl font-bold">Punya event spesial?</h2>
-              <p className="mt-2 text-primary-foreground/90 max-w-lg">Catering geprek 25–100+ porsi siap diantar atau di-pickup. Cocok untuk arisan, kantor, dan syukuran.</p>
+              <h2 className="font-display text-4xl md:text-5xl font-bold">{settings.cta_event_title}</h2>
+              <p className="mt-2 text-primary-foreground/90 max-w-lg">{settings.cta_event_subtitle}</p>
             </div>
             <Button asChild size="lg" className="bg-background text-primary hover:bg-background/90">
               <Link to="/catering">Lihat Paket <Store className="ml-2 h-4 w-4" /></Link>

@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { Flame, ShoppingCart, User, LogOut, LayoutDashboard } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useCart } from "@/hooks/useCart";
+import { useSiteSettings } from "@/hooks/useSiteSettings";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
@@ -10,6 +11,7 @@ import {
 export function SiteHeader() {
   const { user, isAdmin, signOut } = useAuth();
   const { count } = useCart();
+  const { settings } = useSiteSettings();
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-border/60 bg-background/80 backdrop-blur-xl">
@@ -19,8 +21,8 @@ export function SiteHeader() {
             <Flame className="h-5 w-5 text-primary-foreground" />
           </div>
           <div className="leading-tight">
-            <div className="font-display text-xl font-bold text-foreground">Juragan Geprek</div>
-            <div className="text-[10px] uppercase tracking-widest text-primary font-semibold">E-Catering</div>
+            <div className="font-display text-xl font-bold text-foreground">{settings.brand_name}</div>
+            <div className="text-[10px] uppercase tracking-widest text-primary font-semibold">{settings.brand_tagline}</div>
           </div>
         </Link>
 
