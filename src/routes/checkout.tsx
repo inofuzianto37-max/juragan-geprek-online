@@ -149,6 +149,14 @@ function CheckoutPage() {
       <h1 className="font-display text-4xl font-bold mb-8">Checkout</h1>
       <form onSubmit={submit} className="grid gap-8 lg:grid-cols-[1fr_400px]">
         <div className="space-y-6">
+          {Object.values(errors).some(Boolean) && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                Mohon lengkapi data wajib yang ditandai di bawah sebelum melanjutkan pesanan.
+              </AlertDescription>
+            </Alert>
+          )}
           <Section title="Data Pemesan">
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
