@@ -4,6 +4,7 @@ import { ArrowLeft, MapPin, Phone, Wallet, Truck, Store } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { formatRupiah, formatDate } from "@/lib/format";
+import { PaymentProofUpload } from "@/components/PaymentProofUpload";
 import {
   STATUS_LABEL, STATUS_VARIANT, STATUS_DESCRIPTION, STATUS_ICON, STATUS_FLOW,
   type OrderStatus,
@@ -118,14 +119,23 @@ function OrderDetailPage() {
         </div>
       </div>
 
-      {order.payment_method === "transfer" && order.status === "pending" && (
-        <div className="mt-6 rounded-2xl border-2 border-warning/30 bg-warning/10 p-5 text-sm">
-          <div className="font-semibold text-warning-foreground">Menunggu pembayaran</div>
-          <div className="mt-1 text-muted-foreground">
-            Transfer ke <strong>BCA 1234567890 a.n. Juragan Geprek</strong> sebesar{" "}
-            <strong className="text-primary">{formatRupiah(Number(order.total))}</strong>, lalu kirim bukti ke WA{" "}
-            <strong>0812-3456-7890</strong>.
+      {order.payment_method === "transfer" && order.status !== "cancelled" && order.status !== "delivered" && (
+        <div className="mt-6 rounded-2xl border-2 border-warning/30 bg-warning/10 p-5 text-sm space-y-4">
+          <div>
+            <div className="font-semibold text-warning-foreground">
+              {order.payment_proof_url ? "Bukti pembayaran terkirim" : "Menunggu pembayaran"}
+            </div>
+            <div className="mt-1 text-muted-foreground">
+              {order.payment_proof_url
+                ? "Tim kami akan memverifikasi bukti pembayaranmu sebelum pesanan diproses."
+                : <>Transfer ke <strong>BCA 1234567890 a.n. Juragan Geprek</strong> sebesar <strong className="text-primary">{formatRupiah(Number(order.total))}</strong>, lalu unggah bukti transfer di bawah.</>}
+            </div>
           </div>
+          <PaymentProofUpload
+            orderId={order.id}
+            orderNumber={order.order_number}
+            existingPath={order.payment_proof_url}
+          />
         </div>
       )}
     </div>
