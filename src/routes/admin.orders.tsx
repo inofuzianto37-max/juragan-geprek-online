@@ -1,7 +1,7 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
-import { MessageCircle } from "lucide-react";
+import { useEffect, useState } from "react";
+import { MessageCircle, ImageIcon, Download, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
 import { Badge } from "@/components/ui/badge";
@@ -9,6 +9,9 @@ import { Button } from "@/components/ui/button";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
 import { formatRupiah, formatDate } from "@/lib/format";
 import { STATUS_LABEL, STATUS_OPTIONS, STATUS_VARIANT, STATUS_DESCRIPTION, type OrderStatus } from "@/lib/orderStatus";
 import { toast } from "sonner";
@@ -21,6 +24,7 @@ function AdminOrdersPage() {
   const qc = useQueryClient();
   const { settings } = useSiteSettings();
   const [filter, setFilter] = useState<OrderStatus | "all">("all");
+  const [proofOrder, setProofOrder] = useState<{ path: string | null; orderNumber: string; method: string } | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ["admin-orders", filter],
@@ -70,14 +74,17 @@ function AdminOrdersPage() {
             <div key={o.id} className="rounded-2xl border border-border/60 bg-card p-5 shadow-card">
               <div className="flex items-start justify-between gap-3 flex-wrap">
                 <div>
-                  <Link to="/admin/orders/$id" params={{ id: o.id }} className="font-mono text-sm font-bold text-primary hover:underline">
-                    {o.order_number}
-                  </Link>
+                  <div className="font-mono text-sm font-bold text-primary">{o.order_number}</div>
                   <div className="text-sm font-medium mt-1">{o.customer_name} • {o.customer_phone}</div>
                   <div className="text-xs text-muted-foreground">{formatDate(o.created_at)}</div>
-                  <div className="mt-2 flex gap-2 text-xs">
+                  <div className="mt-2 flex gap-2 text-xs flex-wrap">
                     <Badge variant="outline">{o.delivery_method === "delivery" ? "Antar" : "Pickup"}</Badge>
                     <Badge variant="outline">{o.payment_method === "transfer" ? "Transfer" : "COD"}</Badge>
+                    {o.payment_method === "transfer" && (
+                      <Badge variant={o.payment_proof_url ? "default" : "outline"} className="text-[10px]">
+                        {o.payment_proof_url ? "Bukti diunggah" : "Belum ada bukti"}
+                      </Badge>
+                    )}
                   </div>
                 </div>
                 <div className="text-right">
@@ -92,9 +99,15 @@ function AdminOrdersPage() {
                     {STATUS_OPTIONS.map((s) => <SelectItem key={s} value={s}>{STATUS_LABEL[s]}</SelectItem>)}
                   </SelectContent>
                 </Select>
-                <Button asChild variant="outline" size="sm">
-                  <Link to="/admin/orders/$id" params={{ id: o.id }}>Detail & Timeline</Link>
-                </Button>
+                {o.payment_method === "transfer" && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setProofOrder({ path: o.payment_proof_url, orderNumber: o.order_number, method: o.payment_method })}
+                  >
+                    <ImageIcon className="mr-1 h-4 w-4" /> Lihat Bukti Bayar
+                  </Button>
+                )}
                 <a href={waLink(o)} target="_blank" rel="noreferrer">
                   <Button size="sm" className="bg-[#25D366] text-white hover:bg-[#1ebe57]">
                     <MessageCircle className="mr-1 h-4 w-4" /> WhatsApp
@@ -105,6 +118,84 @@ function AdminOrdersPage() {
           ))}
         </div>
       )}
+
+      <PaymentProofDialog
+        open={!!proofOrder}
+        onOpenChange={(v) => !v && setProofOrder(null)}
+        path={proofOrder?.path ?? null}
+        orderNumber={proofOrder?.orderNumber ?? ""}
+      />
     </div>
+  );
+}
+
+function PaymentProofDialog({
+  open, onOpenChange, path, orderNumber,
+}: { open: boolean; onOpenChange: (v: boolean) => void; path: string | null; orderNumber: string }) {
+  const [url, setUrl] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [downloading, setDownloading] = useState(false);
+
+  useEffect(() => {
+    setUrl(null);
+    if (!open || !path) return;
+    setLoading(true);
+    supabase.storage.from("payment-proofs").createSignedUrl(path, 60 * 10).then(({ data, error }) => {
+      setLoading(false);
+      if (!error && data) setUrl(data.signedUrl);
+    });
+  }, [open, path]);
+
+  const handleDownload = async () => {
+    if (!path) return;
+    setDownloading(true);
+    const { data, error } = await supabase.storage.from("payment-proofs").download(path);
+    setDownloading(false);
+    if (error || !data) { toast.error("Gagal mengunduh bukti"); return; }
+    const ext = path.split(".").pop() || "jpg";
+    const blobUrl = URL.createObjectURL(data);
+    const a = document.createElement("a");
+    a.href = blobUrl;
+    a.download = `bukti-bayar-${orderNumber}.${ext}`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(blobUrl);
+    toast.success("Bukti pembayaran diunduh");
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-3xl">
+        <DialogHeader>
+          <DialogTitle>Bukti Pembayaran — {orderNumber}</DialogTitle>
+        </DialogHeader>
+        {!path ? (
+          <div className="rounded-xl border-2 border-dashed border-border bg-muted/30 px-4 py-12 text-center text-sm text-muted-foreground">
+            Pelanggan belum mengunggah bukti pembayaran.
+          </div>
+        ) : loading ? (
+          <div className="py-12 text-center text-sm text-muted-foreground">
+            <Loader2 className="mx-auto h-5 w-5 animate-spin" />
+            <div className="mt-2">Memuat bukti...</div>
+          </div>
+        ) : url ? (
+          <div className="space-y-3">
+            <img src={url} alt="Bukti pembayaran" className="w-full max-h-[70vh] object-contain rounded-xl bg-muted" />
+            <div className="flex justify-end gap-2">
+              <a href={url} target="_blank" rel="noreferrer">
+                <Button variant="outline" size="sm">Buka di tab baru</Button>
+              </a>
+              <Button size="sm" onClick={handleDownload} disabled={downloading} className="bg-gradient-hero text-primary-foreground">
+                {downloading ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Download className="mr-1 h-4 w-4" />}
+                Unduh
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="py-8 text-center text-sm text-destructive">Gagal memuat bukti pembayaran.</div>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }
