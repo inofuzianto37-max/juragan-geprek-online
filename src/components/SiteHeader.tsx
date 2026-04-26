@@ -31,7 +31,7 @@ export function SiteHeader() {
           <Link to="/menu" activeProps={{ className: "text-primary" }} className="hover:text-primary transition">Menu</Link>
           <Link to="/catering" activeProps={{ className: "text-primary" }} className="hover:text-primary transition">Paket Catering</Link>
           <Link to="/contact" activeProps={{ className: "text-primary" }} className="hover:text-primary transition">Kontak</Link>
-          {user && (
+          {user && !isAdmin && (
             <Link to="/orders" activeProps={{ className: "text-primary" }} className="hover:text-primary transition">Pesanan Saya</Link>
           )}
         </nav>
@@ -56,7 +56,9 @@ export function SiteHeader() {
               <DropdownMenuContent align="end" className="w-52">
                 <div className="px-2 py-1.5 text-xs text-muted-foreground truncate">{user.email}</div>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem asChild><Link to="/orders">Pesanan Saya</Link></DropdownMenuItem>
+                {!isAdmin && (
+                  <DropdownMenuItem asChild><Link to="/orders">Pesanan Saya</Link></DropdownMenuItem>
+                )}
                 {isAdmin && (
                   <DropdownMenuItem asChild>
                     <Link to="/admin"><LayoutDashboard className="mr-2 h-4 w-4" />Dashboard Admin</Link>
