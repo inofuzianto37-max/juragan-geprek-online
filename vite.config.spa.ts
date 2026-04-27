@@ -50,6 +50,7 @@ function spaIndexHtml() {
 }
 
 export default defineConfig({
+  base: "./",
   plugins: [
     spaIndexHtml(),
     TanStackRouterVite({ target: "react", autoCodeSplitting: true }),
