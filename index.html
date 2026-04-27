@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="icon" type="image/png" href="./favicon.png" />
+    <link rel="icon" type="image/png" href="/favicon.png" />
     <title>Juragan Geprek — E-Catering</title>
     <meta name="description" content="Pesan ayam geprek dan paket catering Juragan Geprek secara online." />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -12,6 +12,29 @@
   </head>
   <body>
     <div id="root"></div>
+    <script>
+      (function () {
+        function showPublicHtmlError(message) {
+          var root = document.getElementById("root");
+          if (!root || root.children.length) return;
+          root.innerHTML = '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;font-family:system-ui,sans-serif;background:#fff7f4;color:#2d1712"><div style="max-width:560px;border:1px solid #efc9bd;background:#fff;padding:22px;border-radius:12px;box-shadow:0 12px 30px rgba(80,36,22,.12)"><h1 style="margin:0 0 10px;font-size:22px">Website belum berhasil dimuat</h1><p style="margin:0 0 12px;line-height:1.5">' + message + '</p><p style="margin:0;font-size:14px;line-height:1.5;color:#6f4a3d">Pastikan upload <b>isi ZIP</b> langsung ke <b>public_html</b>, folder <b>assets</b> lengkap, dan file <b>.htaccess</b> ikut ter-upload.</p></div></div>';
+        }
+        window.addEventListener("error", function (event) {
+          if (event.target && event.target !== window) {
+            showPublicHtmlError("File asset gagal dimuat dari hosting.");
+            return;
+          }
+          showPublicHtmlError((event.message || "Terjadi error JavaScript saat membuka website.").replace(/</g, "&lt;"));
+        }, true);
+        window.addEventListener("unhandledrejection", function (event) {
+          showPublicHtmlError(String(event.reason && event.reason.message ? event.reason.message : event.reason).replace(/</g, "&lt;"));
+        });
+        window.setTimeout(function () {
+          var root = document.getElementById("root");
+          if (root && !root.children.length) showPublicHtmlError("Aplikasi React tidak berjalan di hosting.");
+        }, 3000);
+      })();
+    </script>
     <script type="module" src="/src/main.spa.tsx"></script>
   </body>
 </html>
